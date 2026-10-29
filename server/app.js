@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 
+const { connectMongo } = require("./config/db");
 const assignmentRoutes = require("./routes/assignments");
 const executeRoutes = require("./routes/execute");
 const hintRoutes = require("./routes/hint");
@@ -51,9 +52,18 @@ app.get("/api/health", (req, res) => {
     res.json({ status: "ok", message: "CipherSQLStudio API is running" });
 });
 
-app.use("/api/assignments", assignmentRoutes);
+const requireMongo = async (req, res, next) => {
+    try {
+        await connectMongo();
+        next();
+    } catch (err) {
+        next(err);
+    }
+};
+
+app.use("/api/assignments", requireMongo, assignmentRoutes);
 app.use("/api/execute", executeRoutes);
-app.use("/api/hint", hintRoutes);
+app.use("/api/hint", requireMongo, hintRoutes);
 
 // --- 404 handler ---
 app.use((req, res) => {

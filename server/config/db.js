@@ -2,14 +2,32 @@ const mongoose = require("mongoose");
 const { Pool } = require("pg");
 
 // MongoDB Connection
+let mongoConnection;
+
 const connectMongo = async () => {
-    try {
-        await mongoose.connect(process.env.MONGO_URI);
-        console.log("MongoDB connected");
-    } catch (err) {
-        console.error("MongoDB connection error:", err.message);
-        process.exit(1);
+    if (mongoose.connection.readyState === 1) {
+        return mongoose.connection;
     }
+
+    if (!process.env.MONGO_URI) {
+        throw new Error("MONGO_URI is not configured");
+    }
+
+    if (!mongoConnection) {
+        mongoConnection = mongoose
+            .connect(process.env.MONGO_URI)
+            .then(() => {
+                console.log("MongoDB connected");
+                return mongoose.connection;
+            })
+            .catch((err) => {
+                mongoConnection = undefined;
+                console.error("MongoDB connection error:", err.message);
+                throw err;
+            });
+    }
+
+    return mongoConnection;
 };
 
 // PostgreSQL Pool
